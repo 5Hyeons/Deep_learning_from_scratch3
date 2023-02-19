@@ -22,15 +22,41 @@ def no_grad():
 
 
 class Variable:
-    def __init__(self, data):
+    def __init__(self, data, name=None):
         if data is not None:
             if not isinstance(data, np.ndarray):
                 raise TypeError('{} is not supported'.format(type(data)))
             
         self.data = data
+        self.name = name
         self.grad = None
         self.creator = None
         self.generation = 0
+
+    @property
+    def shape(self):
+        return self.data.shape
+    
+    @property
+    def ndim(self):
+        return self.data.ndim
+    
+    @property
+    def size(self):
+        return self.data.size
+    
+    @property
+    def dtype(self):
+        return self.data.dtype
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __repr__(self):
+        if self.data is None:
+            return 'variable(None)'
+        p = str(self.data).replace('\n', '\n' + ' ' * 9)
+        return 'variable(' + p + ')'
 
     def set_creator(self, func):
         self.creator = func
@@ -56,7 +82,7 @@ class Variable:
 
         while funcs:                    
             f = funcs.pop()            
-            gys = [output().grad for output in f.outputs] # output is weakref
+            gys = [output().grad for output in f.outputs] 
             gxs = f.backward(*gys)
             if not isinstance(gxs, tuple):
                 gxs = (gxs,)
@@ -72,7 +98,7 @@ class Variable:
 
             if not retain_grad:
                 for y in f.outputs:
-                    y().grad = None # y is weakref
+                    y().grad = None 
 
 
 def as_array(x):
@@ -133,19 +159,9 @@ def add(x0, x1):
     return Add()(x0, x1)
 
 
-x0 = Variable(np.array(1.0))
-x1 = Variable(np.array(1.0))
-t = add(x0, x1)
-y = add(x0, t)
-y.backward()
-print(y.grad, t.grad)  # None None
-print(x0.grad, x1.grad)  # 2.0 1.0
+x = Variable(np.array([[1, 2, 3], [4, 5, 6]]))
+x.name = 'x'
 
-
-with using_config('enable_backprop', False):
-    x = Variable(np.array(2.0))
-    y = square(x)
-
-with no_grad():
-    x = Variable(np.array(2.0))
-    y = square(x)
+print(x.name)
+print(x.shape)
+print(x)
