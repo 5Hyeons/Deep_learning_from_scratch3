@@ -1,3 +1,4 @@
+import unittest
 import numpy as np
 
 
@@ -61,30 +62,38 @@ class Square(Function):
         gx = 2 * x * gy
         return gx
 
-class Exp(Function):
-    def forward(self, x):
-        y = np.exp(x)
-        return y
-    
-    def backward(self, gy):
-        x = self.input.data
-        gx = np.exp(x) * gy
-        return gx
-
 
 def square(x):
     return Square()(x)
 
 
-def exp(x):
-    return Exp()(x)
+def numerical_diff(f, x, eps=1e-4):
+    x0 = Variable(x.data - eps)
+    x1 = Variable(x.data + eps)
+    y0 = f(x0)
+    y1 = f(x1)
+    return (y1.data - y0.data) / (2 * eps)
 
 
-x = Variable(np.array(0.5))
-y = square(exp(square(x)))
-y.backward()
-print(x.grad)
+# python -m unittest {path}.py로 실행
+class SquareTest(unittest.TestCase):
+    def test_forward(self):
+        x = Variable(np.array(2.0))
+        y = square()
+        expected = np.array(4.0)
+        self.assertEqual(y.data, expected)
 
-x = Variable(np.array(1.0)) # OK
-x = Variable(None)          # OK
-x = Variable(1.0)           # NG
+    def test_backward(self):
+        x = Variable(np.array(3.0))
+        y = square(x)
+        y.backward()
+        expected = np.array(6.0)
+        self.assertEqual(x.grad, expected)
+
+    def test_gradient_check(self):
+        x = Variable(np.random.rand(1))
+        y = square(x)
+        y.backward()
+        num_grad = numerical_diff(square, x)
+        flg = np.allclose(x.grad, num_grad)
+        self.assertTrue(flg)
