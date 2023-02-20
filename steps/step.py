@@ -22,6 +22,8 @@ def no_grad():
 
 
 class Variable:
+    __array_priority__ = 200
+     
     def __init__(self, data, name=None):
         if data is not None:
             if not isinstance(data, np.ndarray):
@@ -101,6 +103,12 @@ class Variable:
                     y().grad = None 
 
 
+def as_variable(obj):
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj)
+
+
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
@@ -109,6 +117,8 @@ def as_array(x):
 
 class Function:
     def __call__(self, *inputs):
+        inputs = [as_variable(x) for x in inputs]
+
         xs = [x.data for x in inputs]                
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
@@ -141,6 +151,7 @@ class Add(Function):
     
 
 def add(x0, x1):
+    x1 = as_array(x1)
     return Add()(x0, x1)
 
 
@@ -155,24 +166,21 @@ class Mul(Function):
     
 
 def mul(x0, x1):
+    x1 = as_array(x1)
     return Mul()(x0, x1)
 
 
 Variable.__add__ = add
+Variable.__radd__ = add
 Variable.__mul__ = mul
-Variable.num2 = mul
+Variable.__rmul__ = mul
 
-a = Variable(np.array(3.0))
-b = Variable(np.array(2.0))
-c = Variable(np.array(1.0))
-
-y = a * b + c
-y2 = c + a * b
-y.backward()
-
+x = Variable(np.array(2.0))
+y = x + np.array(3.0)
 print(y)
-print(y2)
-print(a.grad)
-print(b.grad)
 
-print(b.num2(a))
+y = x + 3.0
+print(y)
+
+y = 3.0 * x + 1.0
+print(y)
