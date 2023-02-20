@@ -131,21 +131,6 @@ class Function:
         raise NotImplementedError()
 
 
-class Square(Function):
-    def forward(self, x):
-        y = x ** 2
-        return y
-    
-    def backward(self, gy):
-        x = self.inputs[0].data
-        gx = 2 * x * gy
-        return gx
-
-
-def square(x):
-    return Square()(x)
-
-
 class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
@@ -159,9 +144,35 @@ def add(x0, x1):
     return Add()(x0, x1)
 
 
-x = Variable(np.array([[1, 2, 3], [4, 5, 6]]))
-x.name = 'x'
+class Mul(Function):
+    def forward(self, x0, x1): 
+        y = x0 * x1
+        return y
+    
+    def backward(self, gy):
+        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        return gy * x1, gy * x0
+    
 
-print(x.name)
-print(x.shape)
-print(x)
+def mul(x0, x1):
+    return Mul()(x0, x1)
+
+
+Variable.__add__ = add
+Variable.__mul__ = mul
+Variable.num2 = mul
+
+a = Variable(np.array(3.0))
+b = Variable(np.array(2.0))
+c = Variable(np.array(1.0))
+
+y = a * b + c
+y2 = c + a * b
+y.backward()
+
+print(y)
+print(y2)
+print(a.grad)
+print(b.grad)
+
+print(b.num2(a))
