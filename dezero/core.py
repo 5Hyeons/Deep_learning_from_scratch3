@@ -1,6 +1,7 @@
 import weakref
 import numpy as np
 import contextlib
+import dezero
 
 
 class Config:
@@ -70,7 +71,7 @@ class Variable:
     def backward(self, retain_grad=False, create_graph=False):
         if self.grad is None:
             # self.grad = np.ones_like(self.data)
-            self.gard = Variable(np.ones_like(self.data))
+            self.grad = Variable(np.ones_like(self.data))
 
         funcs = []
         seen_set = set()
@@ -104,6 +105,18 @@ class Variable:
             if not retain_grad:
                 for y in f.outputs:
                     y().grad = None 
+
+    def reshape(self, *shape):
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return dezero.functions.reshape(self.shape)
+    
+    def transpose(self):
+        return dezero.funtions.transpose(self)
+    
+    @property
+    def T(self):
+        return dezero.functions.transpose(self)
 
 
 def as_variable(obj):
